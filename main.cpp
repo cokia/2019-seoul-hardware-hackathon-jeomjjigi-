@@ -6,7 +6,9 @@
 #include "mbedtls/error.h"
 
 #include "ntp-client/NTPClient.h"
-
+#include "http_request.h"
+#include "network-helper.h"
+#include "mbed_mem_trace.h"
 #include "MQTTNetwork.h"
 #include "MQTTmbed.h"
 #include "MQTTClient.h"
@@ -18,9 +20,23 @@
 
 #define USE_WIFI        1
 
-
+void dump_response(HttpResponse* res) {
+    // printf("Status: %d - %s\n", res->get_status_code(), res->get_status_message().c_str());
+ 
+    // printf("Headers:\n");
+    // for (size_t ix = 0; ix < res->get_headers_length(); ix++) {
+    //     printf("\t%s: %s\n", res->get_headers_fields()[ix]->c_str(), res->get_headers_values()[ix]->c_str());
+    // }
+    if (res->get_status_code() == 400)
+        printf("\nNo More Data\n");
+    else
+        printf("%s\n", res->get_body_as_string().c_str());
+}
 DigitalOut led1(LED1);
-InterruptIn btn1(BUTTON1, PullUp);      // Must setting the Pullup option
+DigitalOut led2(LED2);
+
+InterruptIn btn1(BUTTON1, PullUp);
+InterruptIn btn2(BUTTON2, PullUp);        // Must setting the Pullup option
 NetworkInterface *net;
 EventQueue queue(32 * EVENTS_EVENT_SIZE);
 Thread t;
@@ -59,24 +75,6 @@ int Wifi_AP_connect()
 
     return 0;
 }
-#else
-int ETH_connect()
-{
-    // Connect to the internet (DHCP is expected to be on)
-    net = NetworkInterface::get_default_instance();
-
-    nsapi_error_t status = net->connect();
-
-    if (status != NSAPI_ERROR_OK)
-    {
-        printf("Connecting to the network failed %d!\r\n", status);
-        return -1;
-    }
-    // Show the network address
-    printf("Connected to the network successfully. IP address: %s\r\n", net->get_ip_address());
-
-    return 0;
-}
 #endif
 
 void Net_Disconnect()
@@ -102,39 +100,46 @@ void messageArrived(MQTT::MessageData& md)
     MQTT::Message &message = md.message;
     //    printf("Message arrived: qos %d, retained %d, dup %d, packetid %d\r\n", 
     //            message.qos, message.retained, message.dup, message.id);
-    printf("Payload %.*s\r\n", message.payloadlen, (char*)message.payload);
+    printf("%.*s\r\n", (char*)message.payload);
 }
+void btn2_handler()
+{
+    led2 = 1;
 
+#if 1
+ HttpRequest* get_req2 = new HttpRequest(net, HTTP_GET, "http://ubuntu.hanukoon.com:8080/api/service/page/prev/odinevk");
+ 
+        HttpResponse* get_res2 = get_req2->send();
+        if (!get_res2) {
+            printf("HttpRequest failed (error code %d)\n", get_req2->get_error());
+        }
+ 
+        printf("\n----- HTTP GET response -----\n");
+        dump_response(get_res2);
+ 
+        delete get_req2;
+#else
+    printf("btn\n");
+#endif
+
+    led2 = 0;
+}
 void btn_handler()
 {
     led1 = 1;
 
 #if 1
-    static unsigned int id = 0;
-    static unsigned int count = 0;
-    const size_t len = 128;
-    char buf[len];
-
-    // When sending a message
-    MQTT::Message message;
-    message.retained = false;
-    message.dup = false;
-    snprintf(buf, len, "Message #%d from %s.", count, DEVICE_ID);
-    message.payload = (void *)buf;
-    message.qos = MQTT::QOS0;
-    message.id = id++;
-    message.payloadlen = strlen(buf);
-
-    // Publish a message.
-    printf("\r\nPublishing message to the topic %s:\r\n%s\r\n", mqtt_topic_pub.c_str(), buf);
-    int rc = mqttClient->publish(mqtt_topic_pub.c_str(), message);
-    if (rc != MQTT::SUCCESS)
-    {
-        printf("ERROR: rc from MQTT publish is %d\r\n", rc);
-    }
-    printf("Message published.\r\n");
-
-    count++;
+ HttpRequest* get_req = new HttpRequest(net, HTTP_GET, "http://ubuntu.hanukoon.com:8080/api/service/page/next/odinevk");
+ 
+        HttpResponse* get_res = get_req->send();
+        if (!get_res) {
+            printf("HttpRequest failed (error code %d)\n", get_req->get_error());
+        }
+ 
+        printf("\n----- HTTP GET response -----\n");
+        dump_response(get_res);
+ 
+        delete get_req;
 #else
     printf("btn\n");
 #endif
@@ -232,6 +237,8 @@ int main()
 
     t.start(callback(&queue, &EventQueue::dispatch_forever));
     btn1.fall(queue.event(btn_handler));
+    btn2.fall(queue.event(btn2_handler));
+
 
     while(1)
     {

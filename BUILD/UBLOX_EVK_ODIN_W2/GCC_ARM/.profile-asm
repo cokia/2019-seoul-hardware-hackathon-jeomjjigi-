@@ -1,0 +1,30 @@
+{
+    "flags": [
+        "-x", 
+        "assembler-with-cpp"
+    ], 
+    "macros": [], 
+    "symbols": [
+        "ARM_MATH_CM4", 
+        "CB_CHIP_WL18XX", 
+        "CB_FEATURE_802DOT11R", 
+        "CB_FEATURE_802DOT11W", 
+        "CB_INTERFACE_SDIO", 
+        "HSE_STARTUP_TIMEOUT=5000", 
+        "HSE_VALUE=24000000", 
+        "MBEDTLS_ARC4_C", 
+        "MBEDTLS_CONFIG_HW_SUPPORT", 
+        "MBEDTLS_DES_C", 
+        "MBEDTLS_MD4_C", 
+        "MBEDTLS_MD5_C", 
+        "MBEDTLS_PSA_CRYPTO_C", 
+        "MBEDTLS_SHA1_C", 
+        "MBED_MPU_CUSTOM", 
+        "SUPPORT_80211D_ALWAYS", 
+        "WLAN_ENABLED", 
+        "__CMSIS_RTOS", 
+        "__CORTEX_M4", 
+        "__FPU_PRESENT=1", 
+        "__MBED_CMSIS_RTOS_CM"
+    ]
+}
